@@ -100,11 +100,21 @@ branches
 - DCO: 全コミットに `Signed-off-by`（`git commit --signoff`）。CLA は不要。
 - 提出先: `MichaelKinsy/PiG:main` へ、`ShoichiTect:<branch>` から。
 
+## CI の失敗と interface inventory 修正（追記）
+
+- PR #54 の初回 CI で `Linux / contracts` のみ失敗: `interface-go-drift`。`parity/interfaces/pig-go.json`（Go パッケージシンボルの生成 inventory）が未更新だった（`ai.ProviderDisplayName` 追加、`builtInAPIKeyProviders` → `builtinProviderNames`、`compareAPIKeyProviderNames`）。
+- 原因: **ローカルで `make check`（CONTRIBUTING step 8）を回していなかった**。`make check` → `check-core` → `check-contracts-fast` → `interface-go-drift` で検出できた。`make coverage` は parity dashboard 専用で interface inventory は更新しない。
+- 修正: `go run ./parity/cmd/gointerfaces -out parity/interfaces/pig-go.json`。`make ci-contracts` をローカルで全 PASS 確認。
+- **メンテナが同じ修正を PR ブランチに直接 push（`46867cc`）**。内容は同一。重複コミットは rebase で破棄しリモートに同期（force-push せず）。PR の新 CI 実行は `action_required`（fork PR のため maintainer の実行承認待ち）。
+- `personal` にも同じ inventory 修正を反映。
+- 再発防止: push 前に `make check`（重い場合は最低 `make ci-contracts`）を必須にする。
+
 ## 次のアクション
 
 1. [x] issue 文案（`parity.yml`）を作成。
 2. [x] issue 提出 → **#53**。
 3. [x] PR 提出 → **#54**（`Tracking: #53`）。issue #53 に PR リンクと証跡をコメント。
-4. [監視] CI "CI result" とレビュー。`origin/main` が進んだら `fix/provider-catalog-availability` を rebase して `--force-with-lease`。in-flight post-login 変更との衝突は maintainer が解消するが、先に着地させるなら rebase する。
-5. 追加修正は `personal` に積み、upstream 性のあるものだけ topic branch に移す。
-6. upstream `main` の更新を `git fetch origin` して `personal` を rebase する。
+4. [x] CI 修正（`interface-go-drift`）: inventory 再生成。メンテナが同修正を PR ブランチに push（`46867cc`）したためリモートに同期。
+5. [監視] CI "CI result"（`action_required` → maintainer 承認後に実行）とレビュー。`origin/main` が進んだら PR ブランチを rebase して `--force-with-lease`。
+6. 追加修正は `personal` に積み、upstream 性のあるものだけ topic branch に移す。
+7. upstream `main` の更新を `git fetch origin` して `personal` を rebase する。
