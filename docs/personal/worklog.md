@@ -90,7 +90,9 @@ branches
 
 - **issue #53 提出済み**: https://github.com/MichaelKinsy/PiG/issues/53 （`parity.yml` の項目立て、`#50` deepseek を related としてリンク）。issue は **1本**に集約した。3サーフェスは「カタログの手書きサブセット」という単一の根因のため。
 - **過去 PR の観測**: maintainer は #41/#42/#43 でテーマ単位に強くバンドル（stacked 含む）。issue↔PR リンクは 60 PR 中 #45 の1件のみで「1 issue = 1 PR」の慣習は無い。issue は feature 単位で粗い（総数3件）。
-- **PR は1本バンドルを推奨**（PR 内は3コミットに分割済みでレビュー可能性は確保）。`fix/*` の3 branch は分割を望まれた場合の fallback として保持。
+- **PR は1本バンドルを推奨**。PR 用ブランチ `fix/provider-catalog-availability`（**1コミット**、worklog を含まない）を `main` から作成し fork に push 済み。`personal` は3コミット＋worklog のまま常用用に残す。`fix/*` の3 branch は分割を望まれた場合の fallback。
+- **本家 `main` の保護ルール（ruleset "Default"）**: `allowed_merge_methods=[squash]` のみ / 承認1件 / 必須チェック "CI result"（`strict_required_status_checks_policy=true` で up-to-date 必須）/ `required_linear_history` / `required_signatures`（squash 時に GitHub が署名）/ CODEOWNERS 自動レビュー。→ 出す前とレビュー中は `origin/main` に rebase。merge commit は作らない。squash されるので PR タイトルが main のコミット件名になる。
+- **提出タイミング**: maintainer は #53 を self-assign 済みで triage 中（#50 に直近コメントあり）。**24時間様子見**し、反応が無ければ PR を提出する。
 - PR 本文はテンプレを埋める。`Tracking: #53`、Upstream/divergence は **「Matches upstream Pi」** をチェック（`DIVERGENCES.md` への追記は不要）。
 - 頻度: CONTRIBUTING は「unattended / high-volume / unreviewed な issue・PR を送るな」と明記。**同一挙動ファミリはバッチ**して送る。
 - DCO: 全コミットに `Signed-off-by`（`git commit --signoff`）。CLA は不要。
@@ -100,6 +102,6 @@ branches
 
 1. [x] issue 文案（`parity.yml`）を作成。
 2. [x] issue 提出 → **#53**。
-3. PR を提出する（1本バンドル推奨、`Tracking: #53`）。maintainer の反応次第で `fix/*` 3 branch に分割。
+3. [待機] maintainer の反応を24時間待つ。反応が無ければ `fix/provider-catalog-availability` から PR（`Tracking: #53`）。
 4. 追加修正は `personal` に積み、upstream 性のあるものだけ topic branch に移す。
 5. upstream `main` の更新を `git fetch origin` して `personal` を rebase する（fork への push は `--force-with-lease`）。
