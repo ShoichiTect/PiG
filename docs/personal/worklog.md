@@ -3,7 +3,7 @@
 この文書は **`personal` ブランチ専用**の作業ログと upstream 貢献の方針メモです。Stock PiG のドキュメントではないため、upstream（`MichaelKinsy/PiG`）へは出しません。
 
 - Fork: https://github.com/ShoichiTect/PiG （public）
-- 基点: `MichaelKinsy/PiG` の `main`（HEAD `385e275` 時点の pin `0.87.1`）
+- 基点: `MichaelKinsy/PiG` の `main`。pin は `0.87.1`。`personal` は `ad717b3` 上に載せ替え済み（2026-09-26）。
 
 ## リモートとブランチ構成
 
@@ -107,6 +107,15 @@ branches
 - 修正: `go run ./parity/cmd/gointerfaces -out parity/interfaces/pig-go.json`。`make ci-contracts` をローカルで全 PASS 確認。
 - **メンテナが同じ修正を PR ブランチに直接 push（`46867cc`）**。内容は同一。重複コミットは rebase で破棄しリモートに同期（force-push せず）。PR の新 CI 実行は `action_required`（fork PR のため maintainer の実行承認待ち）。
 - `personal` にも同じ inventory 修正を反映。
+
+## PR #54 マージ（確定）
+
+- **PR #54 は 2026-09-26 に squash マージ済み**。`origin/main` = `ad717b3 fix: derive provider availability surfaces from the provider catalog (#54)`（14 files, +546/−177）。
+- マージコミットには署名2つ（ShoichiTect / Michael Kinsy）。メンテナが `ProviderDisplayName` / `FormatNoModelsAvailableMessage` を `parity/interfaces/pig-go.json` に追加する inventory 再生成を maintainer edit で実施（我々のローカル修正と同一）。
+- マージ時に coverage dashboard（`AGENTS.md` / `parity/coverage.md`）も更新。`providers-registry` 6（`06` は `registration-only` タグ通り weak）、`selectors` 10（`11` は behavioral）。
+- メンテナは「interface inventory の点を project documentation でも明確化する」とコメント。
+- **issue #53 は OPEN のまま**（PR は `Tracking: #53` で自動クローズされない）。
+
 ## 運用ルール（再発防止）
 
 1. push 前の必須ローカル前哨: `make ci-contracts`（生成 inventory のドリフトを検出）。推奨セット: `make ci-build ci-contracts ci-drift ci-closure ci-parity`。
@@ -122,6 +131,7 @@ branches
 2. [x] issue 提出 → **#53**。
 3. [x] PR 提出 → **#54**（`Tracking: #53`）。issue #53 に PR リンクと証跡をコメント。
 4. [x] CI 修正（`interface-go-drift`）: inventory 再生成。メンテナが同修正を PR ブランチに push（`46867cc`）したためリモートに同期。
-5. [監視] CI "CI result"（`action_required` → maintainer 承認後に実行）とレビュー。`origin/main` が進んだら PR ブランチを rebase して `--force-with-lease`。
+5. [x] CI "CI result" → contracts の inventory 修正後にマージ（`ad717b3`）。
 6. 追加修正は `personal` に積み、upstream 性のあるものだけ topic branch に移す。
-7. upstream `main` の更新を `git fetch origin` して `personal` を rebase する。
+7. [x] `personal` を `origin/main`（`ad717b3`）へ載せ替え。upstream に入った fix / coverage / inventory コミットは破棄し worklog のみ残す。
+8. [次] issue #53 に「#54 で解決」とコメントしてクローズを促す。
