@@ -107,7 +107,14 @@ branches
 - 修正: `go run ./parity/cmd/gointerfaces -out parity/interfaces/pig-go.json`。`make ci-contracts` をローカルで全 PASS 確認。
 - **メンテナが同じ修正を PR ブランチに直接 push（`46867cc`）**。内容は同一。重複コミットは rebase で破棄しリモートに同期（force-push せず）。PR の新 CI 実行は `action_required`（fork PR のため maintainer の実行承認待ち）。
 - `personal` にも同じ inventory 修正を反映。
-- 再発防止: push 前に `make check`（重い場合は最低 `make ci-contracts`）を必須にする。
+## 運用ルール（再発防止）
+
+1. push 前の必須ローカル前哨: `make ci-contracts`（生成 inventory のドリフトを検出）。推奨セット: `make ci-build ci-contracts ci-drift ci-closure ci-parity`。
+2. エクスポート識別子やパッケージ境界を変えたら生成 inventory を再生成: `go run ./parity/cmd/gointerfaces -out parity/interfaces/pig-go.json`。
+3. macOS では `make check` 全体はホスト依存テストで落ちる（internal/experimental, tui, tests/ci-images, TestShellResultRendersExecutedTruncation 等）。フル再現は devcontainer（Ubuntu 24.04 + Go 1.27.1 / Node 24.19.0 / Python 3.12 / Rust 1.97.1）で `make check`。最終判定は upstream PR CI。
+4. fork ブランチへ push 前に `git fetch fork` して maintainer の直接 push を確認し、あれば rebase で合わせる（`git push -f` は禁止）。
+5. fork では事前 CI を回せない（`ci.yml` は pull_request / schedule / workflow_dispatch のみ）。自動判定は PR CI だけ。
+6. `make coverage` は parity dashboard 専用で `make check` の代替にならない。
 
 ## 次のアクション
 
