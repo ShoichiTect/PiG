@@ -46,6 +46,7 @@ Hotfix for Pi extensions from npm that failed to load or crashed in 0.2.0, repor
 - Fixed print mode hanging, and ignoring SIGTERM, while waiting for piped stdin that is never closed. PiG now exits 143 on SIGTERM there as Pi does. A signal no longer lets later prompts start, and extension handlers and commands it interrupts are no longer reported as failing with "context canceled", in any mode.
 - Fixed the `grep` tool's `path` parameter description differing from Pi's.
 - Fixed an extension overlay that covers the editor, such as `pi-rtk-optimizer`'s `/rtk` panel, drawing the editor cursor as an inverse bar reaching the overlay's left edge. The editor now pads each row to its full width, as Pi's does, so the cursor stays one cell wide under an overlay.
+- Fixed the editor cursor at the end of a line that fills the editor's width highlighting the line's last character. As in Pi, the cursor is now a highlighted space after it, in the column the editor reserves for the cursor, or in the right padding when the editor has padding.
 
 ## [0.2.0] - 2026-09-25
 

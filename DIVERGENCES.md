@@ -1243,7 +1243,7 @@ SCRUTINIZED:approved
 
 ## D66 Narrow TUI rows stay within the requested width
 
-What: PiG keeps two narrow-width component paths within their requested terminal-cell width. `TruncatedText.Render` reduces horizontal padding when the full padding plus one content cell would exceed the width. At width 1 with one column of horizontal padding, PiG renders `"A"`; upstream renders `" A "`, which is three cells wide. `UserMessageSelector.Render` also clips each list, metadata, empty-state, and scroll-indicator row after adding the cursor or indentation. Upstream's `UserMessageList` truncates only the message body and then adds its two-cell cursor, while metadata and other rows are unbounded.
+What: PiG keeps two narrow-width component paths within their requested terminal-cell width. `TruncatedText.Render` reduces horizontal padding when the full padding plus one content cell would exceed the width. At width 1 with one column of horizontal padding, PiG renders `"A"`; upstream renders `" A "`, which is three cells wide. `UserMessageSelector.Render` also clips each list, metadata, empty-state, and scroll-indicator row after adding the cursor or indentation. Upstream's `UserMessageList` truncates only the message body and then adds its two-cell cursor, while metadata and other rows are unbounded. `Editor.Render` at width 1 without padding highlights the final grapheme of a line when the cursor is at its end, rendering `"g"` as one inverse `g`; upstream appends a highlighted space, two cells wide. At every wider width, and with padding, PiG appends the space as upstream does.
 
 Why: both upstream paths can emit a row wider than the terminal. Upstream's main screen treats that as fatal only in its differential-render loop and stops with `Rendered line exceeds terminal width`; initial, full, and resize renders emit the over-wide row unchanged. PiG preserves the complete padding and rows at ordinary widths, but prioritizes keeping an unusually narrow pane usable instead of emitting an over-wide row.
 
@@ -1252,14 +1252,15 @@ Observable effect: at widths where fixed padding, cursor text, or metadata canno
 Call-site markers:
 - `tui/truncated_text.go`: the horizontal-padding clamp in `TruncatedText.Render`.
 - `tui/user_message_selector.go`: the final row-width bound in `UserMessageSelector.Render`.
+- `tui/editor.go`: the final-grapheme cursor in `Editor.buildVisualLines`.
 
-Locked by: `tui/component_width_table_test.go` `TestSelectorDialogListComponentsNeverExceedRenderWidth`, whose `TruncatedText`, `UserMessageSelector`, `UserMessageSelectorScrolled`, and `UserMessageSelectorEmpty` cases render every width from 1 through 120 and reject any over-wide row. Restoring upstream's full padding or removing the selector's final clip fails the matching width-1 case.
+Locked by: `tui/component_width_table_test.go` `TestSelectorDialogListComponentsNeverExceedRenderWidth`, whose `TruncatedText`, `UserMessageSelector`, `UserMessageSelectorScrolled`, `UserMessageSelectorEmpty`, and `EditorSlashAutocomplete` cases render every width from 1 through 120 and reject any over-wide row, and `tui/editor_overlay_cursor_test.go` `TestEditorCursorAtWidthOneStaysInBounds` pins the editor's width-1 row. Restoring upstream's full padding or removing the selector's final clip fails the matching width-1 case.
 
 Parity allowance: paired interactive scenarios use a viable terminal width. The intentional difference exists only when these rows cannot fit; the width matrix directly locks the allowed behavior and its boundary.
 
-PORT_MAP paths: `packages/tui/src/components/truncated-text.ts` and `packages/coding-agent/src/modes/interactive/components/user-message-selector.ts`.
+PORT_MAP paths: `packages/tui/src/components/truncated-text.ts`, `packages/coding-agent/src/modes/interactive/components/user-message-selector.ts`, and `packages/tui/src/components/editor.ts`.
 
-Remove when: upstream clamps `TruncatedText` padding and bounds every user-message selector row, or its main screen safely handles over-wide rows without terminating.
+Remove when: upstream clamps `TruncatedText` padding, bounds every user-message selector row, and fits the editor's end-of-line cursor at width 1, or its main screen safely handles over-wide rows without terminating.
 
 SCRUTINIZED:approved
 

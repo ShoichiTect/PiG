@@ -691,7 +691,10 @@ func (e *Editor) layoutText(contentWidth int) []layoutLine {
 	return layoutLines
 }
 
-func (e *Editor) buildVisualLines(width int) []string {
+// buildVisualLines lays out the text at width and decorates the cursor.
+// rowWidth is the most cells a row may take: the content width plus the one
+// right-padding cell upstream's cursorInPadding lets the cursor use.
+func (e *Editor) buildVisualLines(width, rowWidth int) []string {
 	var out []string
 	emitCursorMarker := e.Focused && len(e.autocompleteItems) == 0
 	for _, line := range e.layoutText(width) {
@@ -699,7 +702,11 @@ func (e *Editor) buildVisualLines(width int) []string {
 			out = append(out, line.text)
 			continue
 		}
-		if line.cursorPos == len(line.text) && widthx.VisibleWidth(line.text) >= width && len(line.text) > 0 {
+		// pig divergence (D66): Upstream appends the end-of-line cursor as a
+		// highlighted space even when the row has no cell left for it, which
+		// happens only at width 1 without padding. PiG highlights the final
+		// grapheme there instead of emitting a row wider than the terminal.
+		if line.cursorPos == len(line.text) && widthx.VisibleWidth(line.text) >= rowWidth && len(line.text) > 0 {
 			segments := graphemeSegments(line.text)
 			last := segments[len(segments)-1]
 			marker := ""
@@ -895,7 +902,7 @@ func (e *Editor) Render(width int) []string {
 		layoutWidth = max(1, contentWidth-1)
 	}
 	e.renderWidth = layoutWidth
-	visual := e.buildVisualLines(layoutWidth)
+	visual := e.buildVisualLines(layoutWidth, contentWidth+min(paddingX, 1))
 	cursorVisualIdx := e.findCursorVisualLine(visual)
 
 	maxVis := e.maxVisibleLines

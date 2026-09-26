@@ -283,7 +283,7 @@ Weak scenarios not counted as behavioral verification: 5 boot-only, 2 registrati
 | `extensions-runtime` | 30 | 30 | 0 | 0 | 0 | 31 | not run |
 | `footer` | 7 | 7 | 0 | 0 | 0 | 8 | not run |
 | `fullscreen` | 10 | 10 | 0 | 0 | 0 | 7 | not run |
-| `interactive-rendering` | 31 | 29 | 2 | 0 | 0 | 26 | not run |
+| `interactive-rendering` | 32 | 30 | 2 | 0 | 0 | 27 | not run |
 | `json` | 2 | 2 | 0 | 0 | 0 | 3 | not run |
 | `model-resolver-selector` | 17 | 17 | 0 | 0 | 0 | 13 | not run |
 | `model-runtime-store-catalog` | 3 | 3 | 0 | 0 | 0 | 7 | not run |

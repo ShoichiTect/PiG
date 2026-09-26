@@ -138251,9 +138251,9 @@
       "kind": "function",
       "exported": false,
       "shape": {
-        "type": "func(width int) []string"
+        "type": "func(width int, rowWidth int) []string"
       },
-      "shapeHash": "sha256:81761e7090d7bb4159cdc88ad1df72001d86a8280dab046ca793a8e9191bed39"
+      "shapeHash": "sha256:58f0616159cc50be7cd1799a536f5402a969df0df60158b354c95718694ea1b5"
     },
     {
       "id": "go:github.com/MichaelKinsy/PiG/tui#Editor.byteOffsetForColumn",

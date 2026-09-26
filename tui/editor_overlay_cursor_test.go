@@ -83,3 +83,44 @@ func TestOverlayOverEditorRowKeepsOneCursorCell(t *testing.T) {
 		})
 	}
 }
+
+// Pi's Editor.render appends the cursor as a highlighted space after a line
+// that exactly fills the layout width: without padding the reserved cursor
+// column holds it, and with padding it takes one right-padding cell. Rows are
+// Pi 0.87.1's Editor.render output under node.
+func TestEditorCursorAfterLineFillingLayoutWidth(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		text        string
+		width, padX int
+		want        string
+	}{
+		{name: "reserved column", text: strings.Repeat("x", 39), width: 40, want: strings.Repeat("x", 39) + "\x1b[7m \x1b[0m"},
+		{name: "right padding", text: strings.Repeat("x", 36), width: 40, padX: 2, want: "  " + strings.Repeat("x", 36) + "\x1b[7m \x1b[0m "},
+		{name: "one-column padding", text: "g", width: 3, padX: 1, want: " g\x1b[7m \x1b[0m"},
+		{name: "width 2", text: "g", width: 2, want: "g\x1b[7m \x1b[0m"},
+		{name: "combining mark", text: strings.Repeat("a", 8) + "é", width: 10, want: strings.Repeat("a", 8) + "é\x1b[7m \x1b[0m"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			editor := NewEditor()
+			editor.SetPaddingX(tc.padX)
+			editor.SetText(tc.text)
+			if got := editor.Render(tc.width)[2]; got != tc.want {
+				t.Fatalf("cursor row = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+// At width 1 without padding Pi 0.87.1's Editor.render returns "g\x1b[7m \x1b[0m",
+// two cells wide, which its main screen treats as fatal. PiG highlights the
+// final grapheme instead so the row fits (D66); an empty editor matches Pi.
+func TestEditorCursorAtWidthOneStaysInBounds(t *testing.T) {
+	for text, want := range map[string]string{"g": "\x1b[7mg\x1b[0m", "": "\x1b[7m \x1b[0m"} {
+		editor := NewEditor()
+		editor.SetText(text)
+		if got := editor.Render(1)[2]; got != want {
+			t.Fatalf("width-1 row for %q = %q, want %q", text, got, want)
+		}
+	}
+}
