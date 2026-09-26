@@ -88,18 +88,18 @@ branches
 
 ## issue → PR の方針（決定事項）
 
-- **issue**: まだ出さない。出すときは `parity.yml`（"Difference from Pi"）を使う。内容は「問題＋再現＋Pi/PiG の観測差＋期待契約＋証跡」に絞り、実装方針の詳細は PR に置く。`pig verify` 出力を含めること。
-- **PR は3分割**（上記の3変更をそれぞれ独立した topic branch から）。
-- PR 本文はテンプレを埋める。Upstream/divergence は **「Matches upstream Pi」** をチェック（`DIVERGENCES.md` への追記は不要）。
-- `Tracking:` には、まとめ issue を作ってからその URL を貼るか、bounded な修正として `No issue: <理由>` を書く。
-- 頻度: CONTRIBUTING は「unattended / high-volume / unreviewed な issue・PR を送るな」と明記。**同一挙動ファミリはバッチ**して送る。最初の issue で「継続的に upstream したいが、まとめ方の希望はあるか」を先に相談する。
+- **issue #53 提出済み**: https://github.com/MichaelKinsy/PiG/issues/53 （`parity.yml` の項目立て、`#50` deepseek を related としてリンク）。issue は **1本**に集約した。3サーフェスは「カタログの手書きサブセット」という単一の根因のため。
+- **過去 PR の観測**: maintainer は #41/#42/#43 でテーマ単位に強くバンドル（stacked 含む）。issue↔PR リンクは 60 PR 中 #45 の1件のみで「1 issue = 1 PR」の慣習は無い。issue は feature 単位で粗い（総数3件）。
+- **PR は1本バンドルを推奨**（PR 内は3コミットに分割済みでレビュー可能性は確保）。`fix/*` の3 branch は分割を望まれた場合の fallback として保持。
+- PR 本文はテンプレを埋める。`Tracking: #53`、Upstream/divergence は **「Matches upstream Pi」** をチェック（`DIVERGENCES.md` への追記は不要）。
+- 頻度: CONTRIBUTING は「unattended / high-volume / unreviewed な issue・PR を送るな」と明記。**同一挙動ファミリはバッチ**して送る。
 - DCO: 全コミットに `Signed-off-by`（`git commit --signoff`）。CLA は不要。
 - 提出先: `MichaelKinsy/PiG:main` へ、`ShoichiTect:<branch>` から。
 
-## 次のアクション（未着手）
+## 次のアクション
 
-1. issue 文案（`parity.yml`）を作成する。
-2. まとめ issue を提出する（ユーザー判断）。
-3. `fix/*` の各 topic branch から PR を提出する。
+1. [x] issue 文案（`parity.yml`）を作成。
+2. [x] issue 提出 → **#53**。
+3. PR を提出する（1本バンドル推奨、`Tracking: #53`）。maintainer の反応次第で `fix/*` 3 branch に分割。
 4. 追加修正は `personal` に積み、upstream 性のあるものだけ topic branch に移す。
 5. upstream `main` の更新を `git fetch origin` して `personal` を rebase する（fork への push は `--force-with-lease`）。
