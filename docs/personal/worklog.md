@@ -167,7 +167,47 @@ branches
 - 影響範囲: スイッチで baseURL を直書きしていない組み込み OpenAI 互換 provider 全部（`opencode`, `opencode-go`, `deepseek`, `zai`, `moonshotai`, `cerebras` 等）。upstream は単一の composed model 経路なので PiG 固有の乖離。
 - 修正案: `buildModelFromRef` の entry 解決を `coding.BuildModel` と同じにする（生成カタログにあるモデルは `ResolveGeneratedModel`、無いものは従来の `Resolve`）。models.json の上書き優先は `ResolveGeneratedModel` が内部で維持する。
 - 検証案: 単体（`buildModelFromRef` の BaseURL）+ 呼び出し側（`selectStartupModel`、main.go:1109 と同じ enabledModels 経路）。任意でパリティシナリオ。
-- 状態: **調査のみ・未着手**。upstream へ出すかは未決定。
+- 状態: **issue #59 / PR #60 として提出済み**（下記「PR #60」）。上記の修正案（entry 解決だけ揃える案）は採用せず、解決と構築を分ける形にした。
+
+## PR #60（起動モデルの baseURL / API 種別）（2026-09-27）
+
+- issue: https://github.com/MichaelKinsy/PiG/issues/59 / PR: https://github.com/MichaelKinsy/PiG/pull/60（base `main`、head `ShoichiTect:fix/startup-model-client-kind`、`78e9ba5`、`Tracking: #59`、+239/−499）。
+- 調査で分かった追加事実: 起動経路は baseURL だけでなく**クライアント種別も誤る**。`buildModelFromRef` は provider ID で分岐し、`coding.BuildModel` は API 種別で分岐する。例: `opencode-go/minimax-m3` は `anthropic-messages`（`https://opencode.ai/zen/go`）だが、起動経路では OpenAI completions クライアントで送られていた。
+- 設計: upstream に合わせて**解決と構築を分けた**。
+  - 解決（`cmd/pig` `resolveStartupModelEntry`）: 完全一致カタログ → models.json 定義 → provider 既定フォールバック（`buildFallbackModel` 相当）→ registry entry。フォールバックと警告は解決側に残す。upstream の `buildFallbackModel` は `resolveCliModel` からしか呼ばれない。
+  - 構築（`coding.BuildModelFromEntry`）: API 種別分岐・baseURL・鍵解決を起動と `/model` で共有。
+  - `coding.BuildModel` にフォールバックを移す案は不採用（upstream の `/model` は未知モデルを構築しないので、公開 API に upstream に無い意味を足すことになる）。
+- `/model` 側の唯一の変更: Azure OpenAI Responses に `entry.Env` を渡す（旧 CLI builder は渡していた。`TestResolveModel_ThreadsAzureScopedEnv`）。
+- `coding.BuildModelFromEntry` は引数が `internal/codingagent.ModelEntry` なのでモジュール外から呼べない。PR 本文で「internal に移すことも可」と maintainer に委ねた。
+- 回帰テスト: `TestStartupModelUsesCatalogBaseURL`、`TestStartupModelUsesCatalogAPIKind`（red は実装前の一時テストで確認）。
+- PR 本文を修正（「/model behavior is unchanged」を訂正、`BuildModelFromEntry` の注記）。issue #59 本文を修正（現在形に、ダミー鍵での再現を注記、#50 との関連を追記）。
+
+### PR #60 の CI 失敗（無関係と判断）
+
+- 失敗は `Linux / test-fast` の `agent/harness/pico3` `TestSchedulerHoldReplacementRunsPendingRecord`（`got "orphaned", want "completed"`、0.00s）だけ。`Linux verification` と `CI result` はその集約。他は全部 pass。
+- 無関係の根拠: `go list -deps ./agent/harness/pico3` の PiG 内依存は `coding/pigversion` のみで、PR の変更パッケージに依存しない。直近の失敗 CI 13 件にこのテストの失敗は無い（docs だけの PR でも別の flaky テストで CI は落ちている）。
+- ローカルでは再現せず: `go test -race -cpu 1,2,4 -count=500 -run '^TestSchedulerHoldReplacementRunsPendingRecord$' ./agent/harness/pico3` → ok（12.1s）。`GOMAXPROCS=2 go test -race -count=20 ./agent/harness/pico3` → ok（219.0s）。
+- 再実行は不可: fork 貢献者で push 権限なし（`permissions.push=false`）。PR にコメントして maintainer に再実行を依頼済み: https://github.com/MichaelKinsy/PiG/pull/60#issuecomment-5851894833
+- CI を緑にするのに必要なのは maintainer の再実行だけ。下のフォローアップは CI とは別件。
+
+## フォローアップ候補（PR #60 とは別件・未着手）
+
+どれも PR #60 のマージを止めない。調査・issue・実装・PR が必要になる可能性がある。
+
+1. **pico3 の flake**（優先度: 高。他の PR の CI も赤くする）
+   - 仮説（未検証）: `openEnv` → `h.Resume()` が `reconcileOrphans` を非同期 goroutine で走らせる（`agent/harness/pico3/harness.go:351-353`）。テストは `resumeDone` を待たないので、その goroutine が `off()` と `RegisterTaskKind(replacement)` の間に走ると、kind 未登録の live task が orphaned になる。
+   - 調査: `reconcileOrphans` に一時的な遅延を入れて再現させるのが最短。
+   - issue: maintainer が PR コメントに反応しない、または同じ失敗が再発したら起票。
+   - 実装: テスト側の問題なら `resumeDone` を待つ小修正。スケジューラ本体の競合なら maintainer 判断になる可能性が高い。
+2. **`coding.BuildModel` が別 provider の caps を借りる**
+   - バグは確認済み: `lookupGeneratedModel` が `ai.LookupModel`（bare-id フォールバック付き）を使うため、`github-copilot/gpt-4o` が openai の `gpt-4o`（128000）を借りる。`ai.LookupModelExact` の doc と `TestResolveModel_UnknownUnderProvider_FallsBackAndWarns` はこれを禁止している。
+   - 要決定: カタログに無い spec を `/model` が受け取ったとき、エラーにするか caps 0 で通すか。upstream の `/model` にはこの入力自体が無いので PiG 側の仕様になる。
+   - 起票前に重複確認が必要（この件ではまだ検索していない）。
+3. **Copilot ログイン後の既定モデル**
+   - `internal/codingagent/interactive_auth.go:788` が `github-copilot/gpt-4o` を固定文字列で構築している。「upstream は `defaultModelPerProvider[providerId]`（copilot 既定 `gpt-5.4`）を選ぶ」は別エージェントの報告で、upstream ソースでは未確認。
+   - 2 を直すとこの箇所の挙動も変わる（借用した caps → caps 0）。2 と 3 は1つの issue/PR にまとめるのが自然かもしれない。
+
+進め方: まず PR #60 の再実行とレビューを待つ。並行して 1 の仮説を検証する。
 
 ## 次のアクション
 
@@ -179,4 +219,7 @@ branches
 6. 追加修正は `personal` に積み、upstream 性のあるものだけ topic branch に移す。
 7. [x] `personal` を `origin/main`（`ad717b3`）へ載せ替え。upstream に入った fix / coverage / inventory コミットは破棄し worklog のみ残す。
 8. [x] issue #53 へのコメントは行わない（ユーザー判断）。issue は OPEN のまま。
-9. [次候補] 起動モデルの baseURL 欠落（上記「発見した問題」）を修正して upstream へ出すか検討する。
+9. [x] 起動モデルの baseURL 欠落 → issue **#59** / PR **#60** を提出。PR・issue 本文を修正済み。
+10. [ ] PR #60: maintainer による CI 再実行とレビューを待つ（pico3 flake 以外は全部 pass）。
+11. [ ] pico3 flake の仮説検証（上記「フォローアップ候補」1）。
+12. [ ] フォローアップ候補 2・3 の重複確認・upstream 確認・起票。
