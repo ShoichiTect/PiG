@@ -26,6 +26,37 @@ branches
 - fork は public。**秘密情報・API キー・私的設定は絶対に載せない**。
 - upstream 側の操作は DCO（`git commit --signoff`）必須。`git push -f` は fork のみ、必要なら `--force-with-lease`。
 
+## 運用フロー（確定版）
+
+作業場はこの clone 1つ。`origin`（本家）は fetch 専用、`fork`（自分）は push 先。開発は clone 内で行い、fork は公開・PR の置き場。
+
+```text
+① 常用
+   git fetch origin
+   git switch personal
+   git rebase origin/main      # 最新 upstream + worklog
+   make install                # 常用バイナリ更新
+   git push --force-with-lease fork personal
+
+② 修正ができたら（upstream に出す価値があるもの）
+   git fetch origin
+   git switch -c fix/<topic> origin/main     # ★ personal ではなく origin/main から
+   # 実装・テスト（make ci-contracts 等の前哨）
+   git commit --signoff ...
+   git push -u fork fix/<topic>
+
+③ issue → PR
+   gh issue create --repo MichaelKinsy/PiG ...     # 必要なら（挙動修正は推奨）
+   gh pr create --repo MichaelKinsy/PiG --base main --head ShoichiTect:fix/<topic>
+   # マージ後: fetch origin → personal を rebase → fork/main も追従
+```
+
+- PR 用ブランチは必ず `origin/main` から切る（`personal` から切ると worklog が混入する）。
+- issue は毎回必須ではない。doc-only / mechanical は理由を書けば不要。挙動修正は issue 推奨。
+- 同一挙動ファミリはバッチする。
+- 提出前に `origin/main` へ rebase（ruleset が base 最新化を必須とする）。
+- `fork/main` は見た目用ミラー。作業には関与しない。
+
 ## 完了した変更（3分割）
 
 ### 1. `fix/list-models-catalog-providers` — model 一覧の認証フィルタをカタログ由来に
