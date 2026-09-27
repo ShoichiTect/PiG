@@ -123,13 +123,13 @@ branches
 
 ## issue → PR の方針（決定事項）
 
-- **issue #53 提出済み**: https://github.com/MichaelKinsy/PiG/issues/53 （`parity.yml` の項目立て、`#50` deepseek を related としてリンク）。issue は **1本**に集約した。3サーフェスは「カタログの手書きサブセット」という単一の根因のため。
-- **過去 PR の観測**: maintainer は #41/#42/#43 でテーマ単位に強くバンドル（stacked 含む）。issue↔PR リンクは 60 PR 中 #45 の1件のみで「1 issue = 1 PR」の慣習は無い。issue は feature 単位で粗い（総数3件）。
+- **issue 53 提出済み**: https://github.com/MichaelKinsy/PiG/issues/53 （`parity.yml` の項目立て、`issue 50` deepseek を related としてリンク）。issue は **1本**に集約した。3サーフェスは「カタログの手書きサブセット」という単一の根因のため。
+- **過去 PR の観測**: maintainer は PR 41/42/43 でテーマ単位に強くバンドル（stacked 含む）。issue↔PR リンクは 60 PR 中 PR 45 の1件のみで「1 issue = 1 PR」の慣習は無い。issue は feature 単位で粗い（総数3件）。
 - **PR は1本バンドルを推奨**。PR 用ブランチ `fix/provider-catalog-availability`（**1コミット**、worklog を含まない）を `main` から作成し fork に push 済み。`personal` は3コミット＋worklog のまま常用用に残す。`fix/*` の3 branch は分割を望まれた場合の fallback。
 - **本家 `main` の保護ルール（ruleset "Default"）**: `allowed_merge_methods=[squash]` のみ / 承認1件 / 必須チェック "CI result"（`strict_required_status_checks_policy=true` で up-to-date 必須）/ `required_linear_history` / `required_signatures`（squash 時に GitHub が署名）/ CODEOWNERS 自動レビュー。→ 出す前とレビュー中は `origin/main` に rebase。merge commit は作らない。squash されるので PR タイトルが main のコミット件名になる。
 - **提出タイミング**: maintainer が「素晴らしいレポート、PR を開いて、0.2.1（最終統合中）に入れたい」と返信（22:18Z）。24時間待ちは不要となった。in-flight の post-login 変更が `ai/api_key_providers.go` に触れており、**カタログ導出版を優先**して解消される。
-- **PR #54 提出済み**: https://github.com/MichaelKinsy/PiG/pull/54 （base `main`、head `ShoichiTect:fix/provider-catalog-availability`、`Tracking: #53`）。`origin/main`（`25c740a`）に rebase 済み。state OPEN / `MERGEABLE / BLOCKED`（レビュー・必須チェック待ち）。
-- **issue #53 に追加コメント済み**: PR リンク、対象ファイル、証跡（byte-equal / `(1/41)`）、スコープの精密化、in-flight 変更があれば rebase する旨。
+- **PR 54 提出済み**: https://github.com/MichaelKinsy/PiG/pull/54 （base `main`、head `ShoichiTect:fix/provider-catalog-availability`、`Tracking: issue 53`）。`origin/main`（`25c740a`）に rebase 済み。state OPEN / `MERGEABLE / BLOCKED`（レビュー・必須チェック待ち）。
+- **issue 53 に追加コメント済み**: PR リンク、対象ファイル、証跡（byte-equal / `(1/41)`）、スコープの精密化、in-flight 変更があれば rebase する旨。
 - PR 本文はテンプレを埋める。Upstream/divergence は **「Matches upstream Pi」** をチェック（`DIVERGENCES.md` への追記は不要）。
 - 頻度: CONTRIBUTING は「unattended / high-volume / unreviewed な issue・PR を送るな」と明記。**同一挙動ファミリはバッチ**して送る。
 - DCO: 全コミットに `Signed-off-by`（`git commit --signoff`）。CLA は不要。
@@ -137,19 +137,19 @@ branches
 
 ## CI の失敗と interface inventory 修正（追記）
 
-- PR #54 の初回 CI で `Linux / contracts` のみ失敗: `interface-go-drift`。`parity/interfaces/pig-go.json`（Go パッケージシンボルの生成 inventory）が未更新だった（`ai.ProviderDisplayName` 追加、`builtInAPIKeyProviders` → `builtinProviderNames`、`compareAPIKeyProviderNames`）。
+- PR 54 の初回 CI で `Linux / contracts` のみ失敗: `interface-go-drift`。`parity/interfaces/pig-go.json`（Go パッケージシンボルの生成 inventory）が未更新だった（`ai.ProviderDisplayName` 追加、`builtInAPIKeyProviders` → `builtinProviderNames`、`compareAPIKeyProviderNames`）。
 - 原因: **ローカルで `make check`（CONTRIBUTING step 8）を回していなかった**。`make check` → `check-core` → `check-contracts-fast` → `interface-go-drift` で検出できた。`make coverage` は parity dashboard 専用で interface inventory は更新しない。
 - 修正: `go run ./parity/cmd/gointerfaces -out parity/interfaces/pig-go.json`。`make ci-contracts` をローカルで全 PASS 確認。
 - **メンテナが同じ修正を PR ブランチに直接 push（`46867cc`）**。内容は同一。重複コミットは rebase で破棄しリモートに同期（force-push せず）。PR の新 CI 実行は `action_required`（fork PR のため maintainer の実行承認待ち）。
 - `personal` にも同じ inventory 修正を反映。
 
-## PR #54 マージ（確定）
+## PR 54 マージ（確定）
 
-- **PR #54 は 2026-09-26 に squash マージ済み**。`origin/main` = `ad717b3 fix: derive provider availability surfaces from the provider catalog (#54)`（14 files, +546/−177）。
+- **PR 54 は 2026-09-26 に squash マージ済み**。`origin/main` = `ad717b3 fix: derive provider availability surfaces from the provider catalog (PR 54)`（14 files, +546/−177）。
 - マージコミットには署名2つ（ShoichiTect / Michael Kinsy）。メンテナが `ProviderDisplayName` / `FormatNoModelsAvailableMessage` を `parity/interfaces/pig-go.json` に追加する inventory 再生成を maintainer edit で実施（我々のローカル修正と同一）。
 - マージ時に coverage dashboard（`AGENTS.md` / `parity/coverage.md`）も更新。`providers-registry` 6（`06` は `registration-only` タグ通り weak）、`selectors` 10（`11` は behavioral）。
 - メンテナは「interface inventory の点を project documentation でも明確化する」とコメント。
-- **issue #53 は OPEN のまま**（PR は `Tracking: #53` で自動クローズされない）。
+- **issue 53 は OPEN のまま**（PR は `Tracking: issue 53` で自動クローズされない）。
 
 ## 運用ルール（再発防止）
 
@@ -159,6 +159,7 @@ branches
 4. fork ブランチへ push 前に `git fetch fork` して maintainer の直接 push を確認し、あれば rebase で合わせる（`git push -f` は禁止）。
 5. fork では事前 CI を回せない（`ci.yml` は pull_request / schedule / workflow_dispatch のみ）。自動判定は PR CI だけ。
 6. `make coverage` は parity dashboard 専用で `make check` の代替にならない。
+7. **cross-reference 防止**: issue / PR 番号の前にシャープ記号を付けない。付けると GitHub がその issue / PR のタイムラインに「関連コミット」として自動表示し、個人メモが upstream の公開 issue に出てしまう。コミットメッセージでも worklog 本文でも「issue 53」「PR 54」のように番号だけで書く。
 
 ## 発見した問題（未着手の候補）
 
@@ -171,11 +172,11 @@ branches
 - 影響範囲: スイッチで baseURL を直書きしていない組み込み OpenAI 互換 provider 全部（`opencode`, `opencode-go`, `deepseek`, `zai`, `moonshotai`, `cerebras` 等）。upstream は単一の composed model 経路なので PiG 固有の乖離。
 - 修正案: `buildModelFromRef` の entry 解決を `coding.BuildModel` と同じにする（生成カタログにあるモデルは `ResolveGeneratedModel`、無いものは従来の `Resolve`）。models.json の上書き優先は `ResolveGeneratedModel` が内部で維持する。
 - 検証案: 単体（`buildModelFromRef` の BaseURL）+ 呼び出し側（`selectStartupModel`、main.go:1109 と同じ enabledModels 経路）。任意でパリティシナリオ。
-- 状態: **issue #59 / PR #60 として提出済み**（下記「PR #60」）。上記の修正案（entry 解決だけ揃える案）は採用せず、解決と構築を分ける形にした。
+- 状態: **issue 59 / PR 60 として提出済み**（下記「PR 60」）。上記の修正案（entry 解決だけ揃える案）は採用せず、解決と構築を分ける形にした。
 
-## PR #60（起動モデルの baseURL / API 種別）（2026-09-27）
+## PR 60（起動モデルの baseURL / API 種別）（2026-09-27）
 
-- issue: https://github.com/MichaelKinsy/PiG/issues/59 / PR: https://github.com/MichaelKinsy/PiG/pull/60（base `main`、head `ShoichiTect:fix/startup-model-client-kind`、`78e9ba5`、`Tracking: #59`、+239/−499）。
+- issue: https://github.com/MichaelKinsy/PiG/issues/59 / PR: https://github.com/MichaelKinsy/PiG/pull/60（base `main`、head `ShoichiTect:fix/startup-model-client-kind`、`78e9ba5`、`Tracking: issue 59`、+239/−499）。
 - 調査で分かった追加事実: 起動経路は baseURL だけでなく**クライアント種別も誤る**。`buildModelFromRef` は provider ID で分岐し、`coding.BuildModel` は API 種別で分岐する。例: `opencode-go/minimax-m3` は `anthropic-messages`（`https://opencode.ai/zen/go`）だが、起動経路では OpenAI completions クライアントで送られていた。
 - 設計: upstream に合わせて**解決と構築を分けた**。
   - 解決（`cmd/pig` `resolveStartupModelEntry`）: 完全一致カタログ → models.json 定義 → provider 既定フォールバック（`buildFallbackModel` 相当）→ registry entry。フォールバックと警告は解決側に残す。upstream の `buildFallbackModel` は `resolveCliModel` からしか呼ばれない。
@@ -184,9 +185,9 @@ branches
 - `/model` 側の唯一の変更: Azure OpenAI Responses に `entry.Env` を渡す（旧 CLI builder は渡していた。`TestResolveModel_ThreadsAzureScopedEnv`）。
 - `coding.BuildModelFromEntry` は引数が `internal/codingagent.ModelEntry` なのでモジュール外から呼べない。PR 本文で「internal に移すことも可」と maintainer に委ねた。
 - 回帰テスト: `TestStartupModelUsesCatalogBaseURL`、`TestStartupModelUsesCatalogAPIKind`（red は実装前の一時テストで確認）。
-- PR 本文を修正（「/model behavior is unchanged」を訂正、`BuildModelFromEntry` の注記）。issue #59 本文を修正（現在形に、ダミー鍵での再現を注記、#50 との関連を追記）。
+- PR 本文を修正（「/model behavior is unchanged」を訂正、`BuildModelFromEntry` の注記）。issue 59 本文を修正（現在形に、ダミー鍵での再現を注記、issue 50 との関連を追記）。
 
-### PR #60 の CI 失敗（無関係と判断）
+### PR 60 の CI 失敗（無関係と判断）
 
 - 失敗は `Linux / test-fast` の `agent/harness/pico3` `TestSchedulerHoldReplacementRunsPendingRecord`（`got "orphaned", want "completed"`、0.00s）だけ。`Linux verification` と `CI result` はその集約。他は全部 pass。
 - 無関係の根拠: `go list -deps ./agent/harness/pico3` の PiG 内依存は `coding/pigversion` のみで、PR の変更パッケージに依存しない。直近の失敗 CI 13 件にこのテストの失敗は無い（docs だけの PR でも別の flaky テストで CI は落ちている）。
@@ -194,9 +195,9 @@ branches
 - 再実行は不可: fork 貢献者で push 権限なし（`permissions.push=false`）。PR にコメントして maintainer に再実行を依頼済み: https://github.com/MichaelKinsy/PiG/pull/60#issuecomment-5851894833
 - CI を緑にするのに必要なのは maintainer の再実行だけ。下のフォローアップは CI とは別件。
 
-## フォローアップ候補（PR #60 とは別件・未着手）
+## フォローアップ候補（PR 60 とは別件・未着手）
 
-どれも PR #60 のマージを止めない。調査・issue・実装・PR が必要になる可能性がある。
+どれも PR 60 のマージを止めない。調査・issue・実装・PR が必要になる可能性がある。
 
 1. **pico3 の flake**（優先度: 高。他の PR の CI も赤くする）
    - 仮説（未検証）: `openEnv` → `h.Resume()` が `reconcileOrphans` を非同期 goroutine で走らせる（`agent/harness/pico3/harness.go:351-353`）。テストは `resumeDone` を待たないので、その goroutine が `off()` と `RegisterTaskKind(replacement)` の間に走ると、kind 未登録の live task が orphaned になる。
@@ -224,7 +225,7 @@ branches
 
    - 暫定回避: `~/.pig/agent/settings.json` に `defaultThinkingLevel: "high"`（実害は消えている）。
    - 方針: upstream の方が正しいので divergence 登録はしない。直すなら `initThinkingLevel` の clamp を `ai.ClampThinkingLevel` に置き換え、赤→緑の回帰テストを付ける。
-   - 取り組むときは `git fetch origin && git switch -c fix/<topic> origin/main`（PR #60 の変更には依存しない想定）。
+   - 取り組むときは `git fetch origin && git switch -c fix/<topic> origin/main`（PR 60 の変更には依存しない想定）。
    - issue/PR にはまだ出さない。着手前に、表の値の再測定・upstream の呼び出し経路の確認・重複確認をする。
 
 5. **Node 26 で TS 拡張ホストが壊れる（`module.register()` の非推奨 / DEP0205）**（2026-09-27 発見。優先度: 中）
@@ -233,24 +234,24 @@ branches
    - 移行の難易度: `register()` は非同期フックを別ローダースレッドで実行、`registerHooks()` は同期フックを同一スレッドで実行。`loader.mjs` は `export async function resolve/load`（中で `await stat`/`readFile`）なので、`registerHooks()` 化には sync 版（`statSync`/`readFileSync`）への書き換えが必要。1 行置換ではない。
    - もう一つの論点: `extensions/sdk-ts/package.json` の `engines.node = ">=22.19.0"`（上限なし）が実態と乖離。`.node-version` = 24.19.0、CI もそれを使用（`ci.yml` 冒頭コメント「Node from `.node-version`」）。宣言上は 26 も可に見えるが実際は壊れる。
    - 未確定: Node 26 で **なぜ** handshake が失敗するか（DEP0205 警告が stderr に混じって壊すのか、`register()` の挙動自体が変わるのか）。issue に書くなら機序は断定しない。
-   - 対応候補: (a) `registerHooks()` へ移行して 26 対応、(b) `engines` に上限を入れて「24 系のみ」を明示。upstream に **独立 issue**（PR #60 とは無関係）。
+   - 対応候補: (a) `registerHooks()` へ移行して 26 対応、(b) `engines` に上限を入れて「24 系のみ」を明示。upstream に **独立 issue**（PR 60 とは無関係）。
    - 着手前に: Node 公式（`deprecations.html` の DEP0205 / `module.html` の `register`・`registerHooks`）で再確認、upstream に既存 issue がないか重複確認。
    - ローカル対処: 上記「環境メモ」の mise+direnv で `~/dev/pig` を 24.19.0 に固定済み。
 
-進め方: まず PR #60 の再実行とレビューを待つ。並行して 1 の仮説を検証する。
+進め方: まず PR 60 の再実行とレビューを待つ。並行して 1 の仮説を検証する。
 
 ## 次のアクション
 
 1. [x] issue 文案（`parity.yml`）を作成。
-2. [x] issue 提出 → **#53**。
-3. [x] PR 提出 → **#54**（`Tracking: #53`）。issue #53 に PR リンクと証跡をコメント。
+2. [x] issue 提出 → **issue 53**。
+3. [x] PR 提出 → **PR 54**（`Tracking: issue 53`）。issue 53 に PR リンクと証跡をコメント。
 4. [x] CI 修正（`interface-go-drift`）: inventory 再生成。メンテナが同修正を PR ブランチに push（`46867cc`）したためリモートに同期。
 5. [x] CI "CI result" → contracts の inventory 修正後にマージ（`ad717b3`）。
 6. 追加修正は `personal` に積み、upstream 性のあるものだけ topic branch に移す。
 7. [x] `personal` を `origin/main`（`ad717b3`）へ載せ替え。upstream に入った fix / coverage / inventory コミットは破棄し worklog のみ残す。
-8. [x] issue #53 へのコメントは行わない（ユーザー判断）。issue は OPEN のまま。
-9. [x] 起動モデルの baseURL 欠落 → issue **#59** / PR **#60** を提出。PR・issue 本文を修正済み。
-10. [ ] PR #60: maintainer による CI 再実行とレビューを待つ（pico3 flake 以外は全部 pass）。
+8. [x] issue 53 へのコメントは行わない（ユーザー判断）。issue は OPEN のまま。
+9. [x] 起動モデルの baseURL 欠落 → issue **59** / PR **60** を提出。PR・issue 本文を修正済み。
+10. [ ] PR 60: maintainer による CI 再実行とレビューを待つ（pico3 flake 以外は全部 pass）。
 11. [ ] pico3 flake の仮説検証（上記「フォローアップ候補」1）。
 12. [ ] フォローアップ候補 2・3 の重複確認・upstream 確認・起票。
 13. [ ] フォローアップ候補 4（thinking level の clamp）の再測定・upstream 経路確認・重複確認。直すかは未決定。
