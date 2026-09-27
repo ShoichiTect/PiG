@@ -245,6 +245,25 @@ branches
    - 着手前に: Node 公式（`deprecations.html` の DEP0205 / `module.html` の `register`・`registerHooks`）で再確認、upstream に既存 issue がないか重複確認。
    - ローカル対処: 上記「環境メモ」の mise+direnv で `~/dev/pig` を 24.19.0 に固定済み。
 
+6. **`/scoped-models` を1件に絞った後の Ctrl+P と、スコープ外モデルからの Ctrl+P の着地点**（2026-09-28 発見。優先度: 低〜中）
+   - **結論: どちらも「バグ」と断定できない。サイクリングの仕様はコード・テスト・コメントのいずれにも明文化されておらず、未定義エッジに対する実装上の選択。pi/PiG は同型。parity ずれはメッセージ文言だけ。**（前回 off-by-one/バグと書いたのは撤回）
+   - きっかけ: ユーザー報告。`pi --model <A>` 起動 → `/scoped-models` で1件だけ残して Ctrl+S → Ctrl+C → Ctrl+P が `Only one model in scope` で A のまま。
+   - 実測（upstream pi 0.87.1 dist を tmux 実走）:
+     - 1件スコープ（current はスコープ外）: Ctrl+P は `Only one model in scope` を出して no-op。`/scoped-models` は1件でも保存可能（`--models` 未指定時は settings の `enabledModels` が起動スコープ: `dist/main.js:641`）。
+     - 2件スコープ・current がスコープ外: Ctrl+P forward は scope[1] に着地。実測 scope=`[deepseek-v4-flash, glm-5.3]` / current=`mimo-v2.5` → `Switched to GLM-5.3`。
+   - なぜ「バグ断定不可」か:
+     - upstream 実ソース `.upstream/v0.87.1/packages/coding-agent/src/core/agent-session.ts:2185` は `if (currentIndex === -1) currentIndex = 0;` の一行だけで、スコープ外 current の扱いを述べたコメント・テストが無い（`grep` でも該当なし）。
+     - この実装は「スコープ外 current を『先頭スロット(index 0)に居る』とみなす」解釈。この解釈では forward→index1、backward→index-1=末尾 で **自己整合** している。別解釈（current は先頭の直前）なら forward→index0 になるが、どちらが正しいかを示す記述は upstream に無い。
+     - 1件時 no-op も「単一要素のサイクリングは next が無い」という定義どおりで、`Only one model in scope` は事実として正しい。
+     - つまり「未定義エッジへの実装選択」であって、期待値を決めない限りバグとは言えない。
+   - PiG 側の同型箇所: `internal/codingagent/interactive_models.go:159`（`len(items) <= 1` で return）/ `:172-185`（`if currentIdx == -1 { currentIdx = 0 }`、`nextIdx = (currentIdx+1)%n`）。
+   - **parity ずれ（ここだけが PiG 固有の確定差分）**: メッセージ文言。
+     - upstream `dist/modes/interactive/interactive-mode.js:3591`: `session.scopedModels.length > 0 ? "Only one model in scope" : "Only one model available"`（未フィルタの構成スコープで判定）。
+     - PiG: 常に `"Only one model available"`、0件時のみ `"No authenticated models"`。
+     - 差分: (i) スコープ1件かつ利用可能1件 → upstream `Only one model in scope` / PiG `Only one model available`。(ii) スコープ構成ありで利用可能0件 → upstream `Only one model in scope`（実際は0件なのに）/ PiG `No authenticated models`。PiG の方が実態に即している面もあり、単純に upstream 合わせが正解とは限らない。
+   - もし変えるなら（バグ修正ではなく仕様決定として）: スコープ1件でも current がスコープ外ならその1件へ切り替える / forward 初回を scope[0] にする、など。いずれも upstream へ「意図確認」レベルの issue が妥当。
+   - 未確認: upstream の issue 重複、PiG 側の実機再現（PiG はコード読解のみ）。
+
 進め方: まず PR 60 の再実行とレビューを待つ。並行して 1 の仮説を検証する。
 
 ## 次のアクション
