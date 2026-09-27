@@ -156,6 +156,19 @@ branches
 5. fork では事前 CI を回せない（`ci.yml` は pull_request / schedule / workflow_dispatch のみ）。自動判定は PR CI だけ。
 6. `make coverage` は parity dashboard 専用で `make check` の代替にならない。
 
+## 発見した問題（未着手の候補）
+
+### 起動モデルの baseURL 欠落で最初のリクエストが 401（2026-09-27 調査）
+
+- 症状: 新規セッション開始時、`enabledModels` から選んだモデルで最初の送信だけ 401。`/model` で同じ provider/model を選び直すと直る。
+- 再現（実測）: auth.json に `opencode-go` のみ、models.json なし。`enabledModels = ["deepseek-v4.1-flash"]`。provider は `opencode-go` なのに baseURL が空 → `ai.NewOpenAIProvider` の既定 `https://api.openai.com/v1` に飛び、`oc_sk_...` が付いて OpenAI が 401。
+- 原因: 起動経路 `cmd/pig/buildModelFromRef` が `registry.Resolve` を使う。これは models.json / 動的登録 / env キーしか返さず、組み込み provider の生成カタログ baseURL を返さない（`apiKind` だけ後で補完している）。一方 `/model` / `ctrl+p` の `coding.BuildModel` は `registry.ResolveGeneratedModel` を使うので正しい。
+- 実測値: `buildModelFromRef` → `BaseURL=""`、`ResolveGeneratedModel` → `BaseURL="https://opencode.ai/zen/go/v1"`。
+- 影響範囲: スイッチで baseURL を直書きしていない組み込み OpenAI 互換 provider 全部（`opencode`, `opencode-go`, `deepseek`, `zai`, `moonshotai`, `cerebras` 等）。upstream は単一の composed model 経路なので PiG 固有の乖離。
+- 修正案: `buildModelFromRef` の entry 解決を `coding.BuildModel` と同じにする（生成カタログにあるモデルは `ResolveGeneratedModel`、無いものは従来の `Resolve`）。models.json の上書き優先は `ResolveGeneratedModel` が内部で維持する。
+- 検証案: 単体（`buildModelFromRef` の BaseURL）+ 呼び出し側（`selectStartupModel`、main.go:1109 と同じ enabledModels 経路）。任意でパリティシナリオ。
+- 状態: **調査のみ・未着手**。upstream へ出すかは未決定。
+
 ## 次のアクション
 
 1. [x] issue 文案（`parity.yml`）を作成。
@@ -165,4 +178,5 @@ branches
 5. [x] CI "CI result" → contracts の inventory 修正後にマージ（`ad717b3`）。
 6. 追加修正は `personal` に積み、upstream 性のあるものだけ topic branch に移す。
 7. [x] `personal` を `origin/main`（`ad717b3`）へ載せ替え。upstream に入った fix / coverage / inventory コミットは破棄し worklog のみ残す。
-8. [次] issue #53 に「#54 で解決」とコメントしてクローズを促す。
+8. [x] issue #53 へのコメントは行わない（ユーザー判断）。issue は OPEN のまま。
+9. [次候補] 起動モデルの baseURL 欠落（上記「発見した問題」）を修正して upstream へ出すか検討する。
