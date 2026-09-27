@@ -110,11 +110,15 @@ branches
 ## 環境メモ
 
 - Go: `go.mod` の toolchain `go1.27.1`。`make doctor` は auto-toolchain のため go missing を出す。必要なら `make setup`。
-- Node: README 要求は **24.19.0**。Node 26 だと拡張サブプロセスが `register handshake` で落ちる。mise で導入済み:
-  ```bash
-  export PATH="$HOME/.local/share/mise/installs/node/24.19.0/bin:$PATH"
-  # 恒久化するなら: mise use -g node@24.19.0
-  ```
+- Node: README 要求は **24.19.0**。Node 26 だと拡張サブプロセスが `register handshake` で落ちる（原因は `module.register()` の DEP0205。下記フォローアップ候補 5）。
+  `~/dev/pig` 配下だけ 24.19.0 になるよう **mise + direnv** で固定済み（2026-09-27）:
+  - `~/dev/pig/mise.toml`: `[tools]` `node = "24.19.0"`
+  - `~/dev/pig/.envrc`: `eval "$(mise direnv)"` + `use mise`（direnv は `~/.zshrc:118` で hook 済み。`direnv allow ~/dev/pig` 済み）
+  - `~/.zshrc` は変更していない。ホームや他プロジェクトは従来どおり（Homebrew Node 26）。
+  - **pi の bash ツールは `/bin/bash`** で direnv 非適用 → エージェント経由でテストする時は手で通す:
+    ```bash
+    export PATH="$HOME/.local/share/mise/installs/node/24.19.0/bin:$PATH"
+    ```
 - パリティ実行は Makefile 経由（`PI_PACKAGE_ROOT` / `PIG_PARITY_PI_BIN` を export する）で行う。`go test` を直接叩く場合はこの2つを渡すこと。
 
 ## issue → PR の方針（決定事項）
@@ -222,6 +226,16 @@ branches
    - 方針: upstream の方が正しいので divergence 登録はしない。直すなら `initThinkingLevel` の clamp を `ai.ClampThinkingLevel` に置き換え、赤→緑の回帰テストを付ける。
    - 取り組むときは `git fetch origin && git switch -c fix/<topic> origin/main`（PR #60 の変更には依存しない想定）。
    - issue/PR にはまだ出さない。着手前に、表の値の再測定・upstream の呼び出し経路の確認・重複確認をする。
+
+5. **Node 26 で TS 拡張ホストが壊れる（`module.register()` の非推奨 / DEP0205）**（2026-09-27 発見。優先度: 中）
+   - 症状: Node 26 で TS 拡張のロードが失敗する（`TestHost_Integration_TS*`、`TestNodeRuntime*`、`TestStartupReusesPreTrustExtensionsAcrossEntrypoints` などが落ちる）。
+   - 原因（確認済み）: `coding/extension/host/subprocess/runtime-node/register-loader.mjs` が `node:module` の `register()` を使う。Node **v26.0.0** で runtime deprecation（**DEP0205**、`Use module.registerHooks() instead`）。手元実測: Node 24.19.0 は警告なし、26.7.0 は DEP0205 警告が出て register handshake が失敗（`connection closed before register ... EOF`）。
+   - 移行の難易度: `register()` は非同期フックを別ローダースレッドで実行、`registerHooks()` は同期フックを同一スレッドで実行。`loader.mjs` は `export async function resolve/load`（中で `await stat`/`readFile`）なので、`registerHooks()` 化には sync 版（`statSync`/`readFileSync`）への書き換えが必要。1 行置換ではない。
+   - もう一つの論点: `extensions/sdk-ts/package.json` の `engines.node = ">=22.19.0"`（上限なし）が実態と乖離。`.node-version` = 24.19.0、CI もそれを使用（`ci.yml` 冒頭コメント「Node from `.node-version`」）。宣言上は 26 も可に見えるが実際は壊れる。
+   - 未確定: Node 26 で **なぜ** handshake が失敗するか（DEP0205 警告が stderr に混じって壊すのか、`register()` の挙動自体が変わるのか）。issue に書くなら機序は断定しない。
+   - 対応候補: (a) `registerHooks()` へ移行して 26 対応、(b) `engines` に上限を入れて「24 系のみ」を明示。upstream に **独立 issue**（PR #60 とは無関係）。
+   - 着手前に: Node 公式（`deprecations.html` の DEP0205 / `module.html` の `register`・`registerHooks`）で再確認、upstream に既存 issue がないか重複確認。
+   - ローカル対処: 上記「環境メモ」の mise+direnv で `~/dev/pig` を 24.19.0 に固定済み。
 
 進め方: まず PR #60 の再実行とレビューを待つ。並行して 1 の仮説を検証する。
 
