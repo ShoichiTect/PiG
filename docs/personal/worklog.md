@@ -195,11 +195,18 @@ branches
 - 再実行は不可: fork 貢献者で push 権限なし（`permissions.push=false`）。PR にコメントして maintainer に再実行を依頼済み: https://github.com/MichaelKinsy/PiG/pull/60#issuecomment-5851894833
 - CI を緑にするのに必要なのは maintainer の再実行だけ。下のフォローアップは CI とは別件。
 
+### PR 60 マージ / issue 59 close（確定）
+
+- **PR 60 は 2026-09-27 05:51Z に squash マージ済み**（merge commit `33234f4`、APPROVED）。`33234f4` が `origin/main` の祖先であることを確認済み。
+- pico3 flake（下記フォローアップ候補 1）は maintainer 側で修正済み: `3aa76ae fix(pico3): snapshot resume orphans before returning (PR 62)`。
+- **issue 59 を 2026-09-27 06:41Z に close（COMPLETED）**。close コメントに PR 60 / merge commit `33234f4` / `main` 反映済みを記載した。issue に assignee・コメントは無く、自分で close して問題なかった。
+- **issue 53 は OPEN のまま（意図的）**。maintainer self-assign 済みで、『interface inventory の点を project documentation で明確化する』は **PR 58**（`dx/contributor-regen-signing`、open、2026-09-27 00:15Z 作成）として in-flight。CONTRIBUTING / AGENTS に `make generate` の明示が入る予定で、`origin/main`（`3aa76ae`）にはまだ未反映。close は maintainer に委ねる。
+
 ## フォローアップ候補（PR 60 とは別件・未着手）
 
-どれも PR 60 のマージを止めない。調査・issue・実装・PR が必要になる可能性がある。
+どれも PR 60 のマージを止めない（候補 1 は上記のとおり upstream で修正済み）。調査・issue・実装・PR が必要になる可能性がある。
 
-1. **pico3 の flake**（優先度: 高。他の PR の CI も赤くする）
+1. **pico3 の flake**（優先度: 高。他の PR の CI も赤くする。→ **upstream `3aa76ae` で修正済み**）
    - 仮説（未検証）: `openEnv` → `h.Resume()` が `reconcileOrphans` を非同期 goroutine で走らせる（`agent/harness/pico3/harness.go:351-353`）。テストは `resumeDone` を待たないので、その goroutine が `off()` と `RegisterTaskKind(replacement)` の間に走ると、kind 未登録の live task が orphaned になる。
    - 調査: `reconcileOrphans` に一時的な遅延を入れて再現させるのが最短。
    - issue: maintainer が PR コメントに反応しない、または同じ失敗が再発したら起票。
@@ -249,9 +256,10 @@ branches
 5. [x] CI "CI result" → contracts の inventory 修正後にマージ（`ad717b3`）。
 6. 追加修正は `personal` に積み、upstream 性のあるものだけ topic branch に移す。
 7. [x] `personal` を `origin/main`（`ad717b3`）へ載せ替え。upstream に入った fix / coverage / inventory コミットは破棄し worklog のみ残す。
-8. [x] issue 53 へのコメントは行わない（ユーザー判断）。issue は OPEN のまま。
+8. [x] issue 53 へのコメントは行わない（ユーザー判断）。issue は OPEN のまま。docs 明確化は PR 58 が in-flight。
 9. [x] 起動モデルの baseURL 欠落 → issue **59** / PR **60** を提出。PR・issue 本文を修正済み。
-10. [ ] PR 60: maintainer による CI 再実行とレビューを待つ（pico3 flake 以外は全部 pass）。
-11. [ ] pico3 flake の仮説検証（上記「フォローアップ候補」1）。
+10. [x] PR 60 はマージ済み（`33234f4`, 2026-09-27 05:51Z, APPROVED）。
+11. [x] pico3 flake は upstream で修正済み（`3aa76ae`）。
 12. [ ] フォローアップ候補 2・3 の重複確認・upstream 確認・起票。
 13. [ ] フォローアップ候補 4（thinking level の clamp）の再測定・upstream 経路確認・重複確認。直すかは未決定。
+14. [x] issue 59 を close（COMPLETED, 2026-09-27 06:41Z）。close コメントに PR 60 と merge commit `33234f4` を記載。
