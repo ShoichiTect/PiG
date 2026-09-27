@@ -206,6 +206,22 @@ branches
 3. **Copilot ログイン後の既定モデル**
    - `internal/codingagent/interactive_auth.go:788` が `github-copilot/gpt-4o` を固定文字列で構築している。「upstream は `defaultModelPerProvider[providerId]`（copilot 既定 `gpt-5.4`）を選ぶ」は別エージェントの報告で、upstream ソースでは未確認。
    - 2 を直すとこの箇所の挙動も変わる（借用した caps → caps 0）。2 と 3 は1つの issue/PR にまとめるのが自然かもしれない。
+4. **起動時の thinking level の clamp が upstream と違う**（2026-09-27 発見）
+   - 場所: `internal/codingagent/interactive_thinking.go` の `initThinkingLevel()`。`idx := min(max(slices.Index(levels, start), 0), maxIdx)` で、サイクル上のインデックスを 0〜maxIdx に丸めているだけ。PiG には `ai.ClampThinkingLevel`（`ai/model_utils.go:92`）があるのに使っていない（コードで確認済み）。
+   - upstream: `packages/ai/src/models.ts` `clampThinkingLevel` は、要求レベルがサポートされていればそのまま返し、無ければ `EXTENDED_THINKING_LEVELS` を要求位置から上へ、次に下へ探して最も近いサポート済みレベルを返す。別エージェントの報告では、upstream の初回設定も `_getThinkingLevelForModelSwitch` もこれを通る（upstream 側の呼び出し経路は私は未確認）。
+   - 症状（別エージェントの報告。表の値は私は再測定していない）: 「medium が穴、xhigh 未定義、max あり」のモデル（例: `deepseek-v4.1-flash`）で、開始レベルが次のようにずれる。
+
+     | 開始 | PiG | upstream |
+     |---|---|---|
+     | medium | low | high |
+     | low | low | low |
+     | high | high | high |
+     | max | high | max |
+
+   - 暫定回避: `~/.pig/agent/settings.json` に `defaultThinkingLevel: "high"`（実害は消えている）。
+   - 方針: upstream の方が正しいので divergence 登録はしない。直すなら `initThinkingLevel` の clamp を `ai.ClampThinkingLevel` に置き換え、赤→緑の回帰テストを付ける。
+   - 取り組むときは `git fetch origin && git switch -c fix/<topic> origin/main`（PR #60 の変更には依存しない想定）。
+   - issue/PR にはまだ出さない。着手前に、表の値の再測定・upstream の呼び出し経路の確認・重複確認をする。
 
 進め方: まず PR #60 の再実行とレビューを待つ。並行して 1 の仮説を検証する。
 
@@ -223,3 +239,4 @@ branches
 10. [ ] PR #60: maintainer による CI 再実行とレビューを待つ（pico3 flake 以外は全部 pass）。
 11. [ ] pico3 flake の仮説検証（上記「フォローアップ候補」1）。
 12. [ ] フォローアップ候補 2・3 の重複確認・upstream 確認・起票。
+13. [ ] フォローアップ候補 4（thinking level の clamp）の再測定・upstream 経路確認・重複確認。直すかは未決定。
