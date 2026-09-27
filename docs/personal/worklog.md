@@ -3,7 +3,7 @@
 この文書は **`personal` ブランチ専用**の作業ログと upstream 貢献の方針メモです。Stock PiG のドキュメントではないため、upstream（`MichaelKinsy/PiG`）へは出しません。
 
 - Fork: https://github.com/ShoichiTect/PiG （public）
-- 基点: `MichaelKinsy/PiG` の `main`。pin は `0.87.1`。`personal` は `ad717b3` 上に載せ替え済み（2026-09-26）。
+- 基点: `MichaelKinsy/PiG` の `main`。pin は `0.87.1`。`personal` は `c1550a8`（0.3.0 リリース後）に載せ替え済み（2026-09-28）。
 
 ## リモートとブランチ構成
 
@@ -215,7 +215,7 @@ branches
    - バグは確認済み: `lookupGeneratedModel` が `ai.LookupModel`（bare-id フォールバック付き）を使うため、`github-copilot/gpt-4o` が openai の `gpt-4o`（128000）を借りる。`ai.LookupModelExact` の doc と `TestResolveModel_UnknownUnderProvider_FallsBackAndWarns` はこれを禁止している。
    - 要決定: カタログに無い spec を `/model` が受け取ったとき、エラーにするか caps 0 で通すか。upstream の `/model` にはこの入力自体が無いので PiG 側の仕様になる。
    - 起票前に重複確認が必要（この件ではまだ検索していない）。
-3. **Copilot ログイン後の既定モデル**
+3. **Copilot ログイン後の既定モデル**（2026-09-28 追記: upstream 未マージブランチ `fix/post-login-model`（`e52dd5c`）が直接対応。着手前にマージ状況を確認）
    - `internal/codingagent/interactive_auth.go:788` が `github-copilot/gpt-4o` を固定文字列で構築している。「upstream は `defaultModelPerProvider[providerId]`（copilot 既定 `gpt-5.4`）を選ぶ」は別エージェントの報告で、upstream ソースでは未確認。
    - 2 を直すとこの箇所の挙動も変わる（借用した caps → caps 0）。2 と 3 は1つの issue/PR にまとめるのが自然かもしれない。
 4. **起動時の thinking level の clamp が upstream と違う**（2026-09-27 発見）
@@ -264,7 +264,29 @@ branches
    - もし変えるなら（バグ修正ではなく仕様決定として）: スコープ1件でも current がスコープ外ならその1件へ切り替える / forward 初回を scope[0] にする、など。いずれも upstream へ「意図確認」レベルの issue が妥当。
    - 未確認: upstream の issue 重複、PiG 側の実機再現（PiG はコード読解のみ）。
 
-進め方: まず PR 60 の再実行とレビューを待つ。並行して 1 の仮説を検証する。
+進め方: フォローアップ候補 2〜4 の重複確認・upstream 確認を進める。候補 3（ログイン後の既定モデル）は upstream の未マージブランチ `fix/post-login-model` が直接の関連。
+
+## upstream 追従（2026-09-28: 0.3.0 / main `c1550a8`）
+
+起床時に upstream `main` が 35 コミット進んでいたため、`personal` を最新に載せ替えて常用バイナリを更新した。
+
+- `personal` を `origin/main`（`c1550a8`）へ rebase（16 コミット、worklog のみ。コンフリクトなし）。
+- `make install` → 常用バイナリを **`0.3.0+0.87.1`** に更新（`~/.local/bin/pig`）。
+- `fork/personal` を `--force-with-lease` で更新。`fork/main` も `c1550a8` に追従（`841c03f..c1550a8`）。
+- マージ済みの `fix/startup-model-client-kind` を **local と `fork` の双方から削除**。`0fa5746`（maintainer 追加コミット）の内容は main に取り込み済みであることを確認（`origin/main:cmd/pig/model.go` の簡素化コメント、CHANGELOG 追記）。
+
+### main の新着（抜粋）
+
+- **`[0.3.0] - 2026-09-27` リリース**。`pig update` による script install 自己更新（`update.json` + install receipt、PR 36）、拡張パリティ多数。
+- **PR 58 マージ済み**（`12c7de3` ほか）: `make generate`、drift エラーの具体化、signed-commit guidance。issue 53 の「inventory を docs で明確化」はこれで対応済み（issue 自体は OPEN）。
+- 大規模改編: vendored node shims を削って **Pi 本体の pi-tui / pi-ai を利用**（PR 40 ほか）、拡張の default export / export surface（PR 38・41・42・43）、RPC レコード整合（PR 70）、Windows parity（PR 67・68・77）、Codex WebSocket flake（PR 61）、zai thinking payload（PR 79）など。
+- pin は **`0.87.1` のまま**（`.upstream/v0.87.1`、`go.mod`）。
+
+### 注目: 未マージ `origin/fix/post-login-model`（`e52dd5c`）
+
+- 「ログイン後の既定モデル選択を Pi と共有」する修正。`defaultModelPerProvider` を起動と全 interactive 認証完了で一本化し、**`internal/codingagent/interactive_auth.go` の login キャンセル機構（`beginLogin`/`endLogin`/`cancelActiveLogin`）と inline Copilot 分岐を削除**、`interactive_post_login.go` を新設。新パリティ `oauth/10-13`。
+- → **フォローアップ候補 3（Copilot ログイン後の既定モデル）はこのブランチが直接の関連**。マージされれば PiG 側の当該箇所（`interactive_auth.go:788` 相当）は消える/移動する。着手前にこのブランチの内容とマージ状況を確認する。
+- 候補 2（別 provider の caps 借用）はこのブランチの `default_models.go` と衝突する可能性があるため、先にマージ状況を見る。
 
 ## 次のアクション
 
@@ -282,3 +304,5 @@ branches
 12. [ ] フォローアップ候補 2・3 の重複確認・upstream 確認・起票。
 13. [ ] フォローアップ候補 4（thinking level の clamp）の再測定・upstream 経路確認・重複確認。直すかは未決定。
 14. [x] issue 59 を close（COMPLETED, 2026-09-27 06:41Z）。close コメントに PR 60 と merge commit `33234f4` を記載。
+15. [x] `personal` を `origin/main`（`c1550a8`、0.3.0）へ載せ替え、バイナリを `0.3.0+0.87.1` に更新。`fork/main` 追従、マージ済み `fix/startup-model-client-kind` を削除（2026-09-28）。
+16. [ ] フォローアップ候補 3 は upstream 未マージブランチ `fix/post-login-model` のマージ状況を確認してから着手（重複起票を避ける）。
